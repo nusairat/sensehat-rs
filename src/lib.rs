@@ -161,19 +161,25 @@ impl<'a> SenseHat<'a> {
     // TODO I did something goofy with that OK wrapping shoud just be able to do the ? but wrong error
     // figure it out later
     fn initialize_humidity(path: &str) -> Result<hts221::Hts221<LinuxI2CDevice>, SenseHatError>{
+        println!("Zift 1");
         if cfg!(feature = "humidity") {
+            println!("Zift 2");
             Ok(hts221::Hts221::new(LinuxI2CDevice::new(path, 0x5f)?).unwrap())
         }
         else {
+            println!("Zift 2 B");
             Err(SenseHatError::GenericError)
         }
     }
 
     fn initialize_pressure(path: &str) -> Result<lps25h::Lps25h<LinuxI2CDevice>, SenseHatError>{
+        println!("Zift 3");
         if cfg!(feature = "pressure") {
+            println!("Zift 4");
             Ok(lps25h::Lps25h::new(LinuxI2CDevice::new(path, 0x5c)?).unwrap())
         }
         else {
+            println!("Zift 4 B");
             Err(SenseHatError::GenericError)
         }
     }
