@@ -127,6 +127,7 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
+    #[cfg(feature = "led-matrix")]
     ScreenError(sensehat_screen::error::ScreenError),
     CharacterError(std::string::FromUtf16Error),
 }
@@ -139,17 +140,47 @@ impl<'a> SenseHat<'a> {
     ///
     /// Will open the relevant I2C devices and then attempt to initialise the
     /// chips on the Sense HAT.
-    pub fn new() -> SenseHatResult<SenseHat<'a>> {
+    pub fn new_path(path: &str) -> SenseHatResult<SenseHat<'a>> {
         Ok(SenseHat {
-            humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
-            pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
+            humidity_chip: SenseHat::initialize_humidity(path)?,
+            pressure_chip: SenseHat::initialize_pressure(path)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
             data: ImuData::default(),
         })
     }
 
+    pub fn new() -> SenseHatResult<SenseHat<'a>> {
+        Ok(SenseHat {
+            humidity_chip: SenseHat::initialize_humidity("/dev/i2c-1")?,
+            pressure_chip: SenseHat::initialize_pressure("/dev/i2c-1")?,
+            accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
+            data: ImuData::default(),
+        })
+    }
+
+    // TODO I did something goofy with that OK wrapping shoud just be able to do the ? but wrong error
+    // figure it out later
+    fn initialize_humidity(path: &str) -> Result<hts221::Hts221<LinuxI2CDevice>, SenseHatError>{
+        if cfg!(feature = "humidity") {
+            Ok(hts221::Hts221::new(LinuxI2CDevice::new(path, 0x5f)?).unwrap())
+        }
+        else {
+            Err(SenseHatError::GenericError)
+        }
+    }
+
+    fn initialize_pressure(path: &str) -> Result<lps25h::Lps25h<LinuxI2CDevice>, SenseHatError>{
+        if cfg!(feature = "pressure") {
+            Ok(lps25h::Lps25h::new(LinuxI2CDevice::new(path, 0x5c)?).unwrap())
+        }
+        else {
+            Err(SenseHatError::GenericError)
+        }
+    }
+
     /// Returns a Temperature reading from the barometer.  It's less accurate
     /// than the barometer (+/- 2 degrees C), but over a wider range.
+    #[cfg(feature = "pressure")]
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
@@ -162,6 +193,7 @@ impl<'a> SenseHat<'a> {
     }
 
     /// Returns a Pressure value from the barometer
+    #[cfg(feature = "pressure")]
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
@@ -176,6 +208,7 @@ impl<'a> SenseHat<'a> {
     /// Returns a Temperature reading from the humidity sensor. It's more
     /// accurate than the barometer (+/- 0.5 degrees C), but over a smaller
     /// range.
+    #[cfg(feature = "humidity")]
     pub fn get_temperature_from_humidity(&mut self) -> SenseHatResult<Temperature> {
         let status = self.humidity_chip.status()?;
         if (status & 1) != 0 {
@@ -187,6 +220,7 @@ impl<'a> SenseHat<'a> {
     }
 
     /// Returns a RelativeHumidity value in percent between 0 and 100
+    #[cfg(feature = "humidity")]
     pub fn get_humidity(&mut self) -> SenseHatResult<RelativeHumidity> {
         let status = self.humidity_chip.status()?;
         if (status & 2) != 0 {
@@ -354,6 +388,7 @@ impl From<std::string::FromUtf16Error> for SenseHatError {
     }
 }
 
+#[cfg(feature = "led-matrix")]
 impl From<sensehat_screen::error::ScreenError> for SenseHatError {
     fn from(err: sensehat_screen::error::ScreenError) -> SenseHatError {
         SenseHatError::ScreenError(err)

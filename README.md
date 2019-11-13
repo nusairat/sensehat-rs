@@ -31,3 +31,9 @@ if let Ok(mut hat) = SenseHat::new() {
     hat.text("Hi!", Colour::RED, Colour::WHITE);
 }
 ```
+
+## Feature Flags
+`led-matrix` - For the LED Matrix to be Activated
+`rtimu` - For the accelerometer and gyroscope
+`pressure` -
+`humidity` -
