@@ -28,6 +28,8 @@ default = ["rtimu", "led-matrix"]
 # Extra packages required by these features.
 rtimu = ["libc"]
 led-matrix = ["sensehat-screen", "tint"]
+humidity = []
+pressure = []
 
 [package.metadata.docs.rs]
 features = ["led-matrix"]
