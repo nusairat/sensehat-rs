@@ -111,8 +111,10 @@ struct ImuData {
 /// Represents the Sense HAT itself.
 pub struct SenseHat<'a> {
     /// LPS25H pressure sensor.
+    #[cfg(feature = "pressure")]
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
     /// HTS221 humidity sensor.
+    #[cfg(feature = "humidity")]
     humidity_chip: hts221::Hts221<LinuxI2CDevice>,
     /// LSM9DS1 IMU device.
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
@@ -142,46 +144,26 @@ impl<'a> SenseHat<'a> {
     /// chips on the Sense HAT.
     pub fn new_path(path: &str) -> SenseHatResult<SenseHat<'a>> {
         Ok(SenseHat {
-            humidity_chip: SenseHat::initialize_humidity(path)?,
-            pressure_chip: SenseHat::initialize_pressure(path)?,
+            #[cfg(feature = "humidity")]
+            humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new(path, 0x5f)?)?,
+            #[cfg(feature = "pressure")]
+            pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new(path, 0x5c)?)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
             data: ImuData::default(),
         })
     }
 
     pub fn new() -> SenseHatResult<SenseHat<'a>> {
+        println!("ZIFT");
+        let path = "/dev/i2c-1";
         Ok(SenseHat {
-            humidity_chip: SenseHat::initialize_humidity("/dev/i2c-1")?,
-            pressure_chip: SenseHat::initialize_pressure("/dev/i2c-1")?,
+            #[cfg(feature = "humidity")]
+            humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new(path, 0x5f)?)?,
+            #[cfg(feature = "pressure")]
+            pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new(path, 0x5c)?)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
             data: ImuData::default(),
         })
-    }
-
-    // TODO I did something goofy with that OK wrapping shoud just be able to do the ? but wrong error
-    // figure it out later
-    fn initialize_humidity(path: &str) -> Result<hts221::Hts221<LinuxI2CDevice>, SenseHatError>{
-        println!("Zift 1");
-        if cfg!(feature = "humidity") {
-            println!("Zift 2");
-            Ok(hts221::Hts221::new(LinuxI2CDevice::new(path, 0x5f)?).unwrap())
-        }
-        else {
-            println!("Zift 2 B");
-            Err(SenseHatError::GenericError)
-        }
-    }
-
-    fn initialize_pressure(path: &str) -> Result<lps25h::Lps25h<LinuxI2CDevice>, SenseHatError>{
-        println!("Zift 3");
-        if cfg!(feature = "pressure") {
-            println!("Zift 4");
-            Ok(lps25h::Lps25h::new(LinuxI2CDevice::new(path, 0x5c)?).unwrap())
-        }
-        else {
-            println!("Zift 4 B");
-            Err(SenseHatError::GenericError)
-        }
     }
 
     /// Returns a Temperature reading from the barometer.  It's less accurate
