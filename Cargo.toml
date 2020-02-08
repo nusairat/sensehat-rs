@@ -11,7 +11,7 @@ readme = "README.md"
 
 [dependencies]
 measurements = "0.10.2"
-i2cdev = "0.4.0"
+i2cdev = "0.4.4"
 byteorder = "1.0"
 libc = { version = "0.2", optional = true }
 sensehat-screen = { version = "0.2", optional = true }
